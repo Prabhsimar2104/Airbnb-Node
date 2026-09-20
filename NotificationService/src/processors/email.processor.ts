@@ -33,8 +33,10 @@ export const setupMailerWorker = () => {
         }
     )
 
-    emailProcessor.on("failed", () => {
+    emailProcessor.on("failed", (job, err) => {
         console.error("Email processing failed");
+        console.error("Job:", job?.id);
+        console.error("Error:", err);
     });
 
     emailProcessor.on("completed", () => {

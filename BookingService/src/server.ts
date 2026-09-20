@@ -30,16 +30,17 @@ app.use(genericErrorHandler);
 app.listen(serverConfig.PORT, () => {
     logger.info(`Server is running on http://localhost:${serverConfig.PORT}`);
     logger.info(`Press Ctrl+C to stop the server.`);
-
+    
     for(let i = 0; i < 1; i++) {
         addEmailToQueue({
-            to: `sample from booking ${i}`,
+            to: `${process.env.MAIL_USER}`,
             subject: "Sample Email booking",
-            templateId: "sample-template",
+            templateId: "welcome",
             params: {
                 name: "John Doe",
-                orderId: "12345",
+                appName: "Airbnb",
             }
         })
     }
+    
 });

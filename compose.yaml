@@ -1,0 +1,130 @@
+services:
+
+  mysql:
+    image: mysql:8.4
+    container_name: airbnb-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - airbnb-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: airbnb-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - airbnb-network
+
+  hotel-service:
+    build: ./HotelService
+    container_name: airbnb-hotel-service
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: test_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ROOM_CRON: "0 2 * * *"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - airbnb-network
+
+  booking-service:
+    build: ./BookingService
+    container_name: airbnb-booking-service
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DATABASE_URL: mysql://root:root@mysql:3306/airbnb_bookings
+      REDIS_SERVER_URL: redis://redis:6379
+      LOCK_TTL: 5000
+      MAIL_USER: ${MAIL_USER}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - airbnb-network
+
+  notification-service:
+    build: ./NotificationService
+    container_name: airbnb-notification-service
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASS: ${MAIL_PASS}
+    depends_on:
+      - redis
+    networks:
+      - airbnb-network
+
+  auth-service:
+    build: ./AuthInGo
+    container_name: airbnb-auth-service
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: ":3004"
+      DBName: auth_dev
+      DB_ADDR: mysql:3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NET: tcp
+      JWT_SECRET: auth_in_go_secret
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - airbnb-network
+
+  review-service:
+    build: ./ReviewService
+    container_name: airbnb-review-service
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: ":8081"
+      DBName: airbnb_reviews
+      DB_ADDR: mysql:3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NET: tcp
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - airbnb-network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  airbnb-network:
+    driver: bridge

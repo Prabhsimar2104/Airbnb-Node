@@ -2,7 +2,7 @@ import { CreateBookingDTO } from '../dto/booking.dto';
 import { confirmBooking, createBooking, createIdempotencyKey, finalizeIdempotencyKey, getIdempotencyKeyWithLock } from '../repositories/booking.repository';
 import { BadRequestError, InternalServerError, NotFoundError } from '../utils/errors/app.error';
 import { generateIdempotencyKey } from '../utils/generateIdempotencyKey';
-
+import { addEmailToQueue } from '../producers/email.producer';
 import prismaClient from '../prisma/client';
 import { redlock } from '../config/redis.config';
 import { serverConfig } from '../config';
@@ -24,6 +24,16 @@ export async function createBookingService(createBookingDTO: CreateBookingDTO) {
         const idempotencyKey = generateIdempotencyKey();
 
         await createIdempotencyKey(idempotencyKey, booking.id);
+
+        await addEmailToQueue({
+            to: 'your-email@gmail.com',
+            subject: 'Booking created successfully',
+            templateId: 'welcome',
+            params: {
+                name: 'John Doe',
+                appName: 'Airbnb',
+            },
+        });
 
         return {
             bookingId: booking.id,
