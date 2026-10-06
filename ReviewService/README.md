@@ -7,7 +7,7 @@ A Go-based microservice for managing hotel reviews in the Airbnb system.
 - CRUD operations for reviews
 - Filter reviews by user, hotel, or booking
 - Soft delete functionality
-- Input validation
+- Input validations
 - RESTful API endpoints
 
 ## Database Schema
